@@ -29,3 +29,20 @@
 .zoomrow button{border:1px solid #454c52;background:transparent;color:#d4c6b8;font-size:10px;padding:7px 11px;border-radius:4px;cursor:pointer}
 .zoomrow button:disabled{opacity:.35;cursor:default}
 @media(max-width:600px){.explorerbar,.canvaswrap,.zoomrow{padding-left:12px;padding-right:12px}.explorerbar small{display:block;margin:5px 0}.wavecanvas{height:125px}.spectrocanvas{height:145px}.zoomrow .panlabel{margin-left:0}}
+
+.intelligence{padding:20px 23px 18px;border-top:1px solid #34393d;background:#161b21}
+.analysis-head{display:flex;align-items:center;gap:14px;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px}
+.analysis-head strong,.freqresults>strong{font-size:11px;letter-spacing:.10em}
+.analysis-head span,.freqresults small{font-size:10px;color:#909ba2}
+.analysis-head button{background:transparent;color:#c6a188;border:1px solid #49515a;border-radius:4px;padding:7px 9px;font-size:10px;cursor:pointer}
+.analysis-head button:disabled{opacity:.35;cursor:default}
+.metricgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.metric{background:#212830;padding:15px 13px;border:1px solid #343e46;border-radius:5px;display:flex;flex-direction:column;gap:9px}
+.metric small{font-size:9px;letter-spacing:.08em;color:#99a3a8}
+.metric strong{font-size:18px;color:#e4d3c4;font-weight:500;overflow-wrap:anywhere}
+.freqresults{margin-top:20px;display:flex;align-items:center;gap:15px;flex-wrap:wrap}
+.freqresults small{font-weight:400;letter-spacing:normal}
+.frequencylist{display:flex;gap:8px;flex-wrap:wrap}
+.frequencylist span{padding:7px 10px;background:#283039;border-radius:4px;font-size:11px;color:#d8b49b}
+.analysisnote{font-size:10px;line-height:1.7;color:#87939c;margin:16px 0 0}
+@media(max-width:600px){.intelligence{padding:15px 12px}.metricgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.metric strong{font-size:15px}}
