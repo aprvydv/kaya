@@ -1,4 +1,4 @@
-import { fft } from './signal'
+import { fft } from './signal.ts'
 
 /** PCM sample statistics for a half-open region [start,end). No weighting is applied. */
 export type SignalStats = {
