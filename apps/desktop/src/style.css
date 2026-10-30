@@ -51,3 +51,18 @@
 .wave-interaction{position:relative;width:100%;touch-action:none}
 .wave-interaction .wavecanvas{touch-action:none;user-select:none}
 .selection-overlay{position:absolute;top:0;bottom:0;background:rgba(203,163,139,.22);border-left:2px solid #efd5ba;border-right:2px solid #efd5ba;pointer-events:none;z-index:2;box-sizing:border-box}
+
+.sampleinspector{padding:20px 23px;background:#141a20;border-top:1px solid #34393d}
+.samplehead,.samplecontrols{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.samplehead strong{font-size:11px;letter-spacing:.10em}.samplehead small{color:#939ca1;font-size:9px;margin-left:10px}
+.samplecontrols label{font-size:10px;color:#a4afb6;display:flex;align-items:center;gap:7px}
+.samplecontrols input,.samplecontrols select{background:#242c33;border:1px solid #46515a;border-radius:4px;color:#e9dfd4;padding:7px;font-size:11px;max-width:140px}
+.samplecontrols button{background:transparent;border:1px solid #5a6268;color:#d6b29a;border-radius:4px;padding:7px 9px;font-size:10px;cursor:pointer}
+.sampletablewrap{overflow-x:auto;margin-top:15px;border:1px solid #35414a;border-radius:5px}
+.sampletable{width:100%;border-collapse:collapse;text-align:left;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sampletable th{background:#252d35;color:#a4afb4;font-size:9px;letter-spacing:.06em;font-weight:500;padding:11px}
+.sampletable td{padding:10px 11px;border-top:1px solid #303940;color:#d6d0c9}
+.sampletable .samplebits{font-family:ui-monospace,Consolas,monospace;letter-spacing:.035em;color:#c7aa94}
+.sampletable tr.sampleactive{background:rgba(201,160,132,.16)}
+.samplecaveat{font-size:10px;color:#949fa5;line-height:1.7;margin:13px 0 0}
+@media(max-width:600px){.sampleinspector{padding:15px 12px}}
