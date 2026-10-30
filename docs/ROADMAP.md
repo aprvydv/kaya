@@ -9,7 +9,7 @@
 
 ## Milestone 1 — Signal inspection
 
-- [ ] Original-file SHA-256 and WAV header metadata
+- [x] Classic RIFF/WAVE metadata and original-file SHA-256 in separate Rust and browser inspectors (Rust/UI bridge pending)
 - [ ] Accurate channel-specific waveform and zoom
 - [ ] FFT spectrogram and synchronized time cursor
 - [ ] Sample value inspector
