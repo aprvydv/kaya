@@ -7,3 +7,25 @@
 .inspectorgrid span{color:#8c969c}.inspectorgrid strong{font-weight:500;color:#e3dbd0}
 .inspectorgrid code.hash{font-size:11px;line-height:1.5;overflow-wrap:anywhere;color:#c7a38d}
 .inspectorfoot,.notice{font-size:11px;color:#929b9f;line-height:1.6}.inspectorfoot{margin-top:20px}.notice{padding:0 23px}
+
+/* Signal Explorer — functional measurement workspace */
+.explorer{border-bottom:1px solid #34393d;background:#181e24}
+.explorerbar,.explorercontrols,.zoomrow{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.explorerbar{padding:15px 23px;border-bottom:1px solid #34393d}
+.explorerbar strong{font-size:11px;letter-spacing:.1em}
+.explorerbar small{color:#8c9599;font-size:9px;margin-left:10px;font-weight:400}
+.explorercontrols label,.zoomrow label{font-size:10px;letter-spacing:.08em;color:#a4a7aa;display:flex;align-items:center;gap:9px}
+.explorercontrols select{background:#252c33;color:#e8dfd5;border:1px solid #495058;padding:6px 9px;border-radius:4px;font-size:11px}
+.canvaswrap{padding:12px 23px 0}
+.visualtitle{color:#b9a795;font-size:10px;letter-spacing:.1em;display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0}
+.visualtitle span{color:#8a949b;font-size:9px;letter-spacing:0}
+.wavecanvas,.spectrocanvas{display:block;width:100%;height:170px;cursor:crosshair;border:1px solid #333d45;border-radius:3px}
+.spectrocanvas{height:190px;margin-bottom:9px}
+.explorerempty{min-height:210px;display:flex;align-items:center;justify-content:center;color:#8d979d;font-size:12px}
+.zoomrow{justify-content:flex-start;padding:13px 23px 20px;border-top:1px solid #34393d}
+.zoomrow input[type=range]{width:130px;accent-color:#cba38b}
+.zoomrow .panlabel{margin-left:14px}
+.zoomrow span{font-size:11px;color:#cba38b}
+.zoomrow button{border:1px solid #454c52;background:transparent;color:#d4c6b8;font-size:10px;padding:7px 11px;border-radius:4px;cursor:pointer}
+.zoomrow button:disabled{opacity:.35;cursor:default}
+@media(max-width:600px){.explorerbar,.canvaswrap,.zoomrow{padding-left:12px;padding-right:12px}.explorerbar small{display:block;margin:5px 0}.wavecanvas{height:125px}.spectrocanvas{height:145px}.zoomrow .panlabel{margin-left:0}}
