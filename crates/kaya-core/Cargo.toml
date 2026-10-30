@@ -1,0 +1,6 @@
+[package]
+name = "kaya-core"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Core sample-buffer primitives for KAYA"
