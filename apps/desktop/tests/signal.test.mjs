@@ -3,9 +3,9 @@ import assert from 'node:assert/strict'
 import { fft, waveformEnvelope, spectrogram } from '../src/signal.ts'
 
 test('min/max envelope preserves negative and positive peaks',()=>{
-  const values=Float32Array.from([-1,-0.3,0.8,0.1,-0.2,0.9])
+  const values=Float32Array.from([-1,-0.25,0.75,0.125,-0.5,0.875])
   assert.deepEqual(waveformEnvelope(values,0,6,3),[
-    {min:-1,max:-0.3},{min:0.1,max:0.8},{min:-0.2,max:0.9}
+    {min:-1,max:-0.25},{min:0.125,max:0.75},{min:-0.5,max:0.875}
   ])
 })
 test('FFT impulse has flat magnitude',()=>{
