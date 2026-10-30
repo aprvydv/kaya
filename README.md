@@ -2,7 +2,7 @@
 
 **Explore what sound conceals.**
 
-KAYA is an early-stage open-source audio engineering, signal analysis, and digital forensics workstation. Our goal is to unite reliable audio inspection, non-destructive editing, reproducible signal experiments, and steganography research.
+KAYA is an early-stage open-source audio engineering, signal analysis, and digital forensics workstation. My goal is to unite reliable audio inspection, non-destructive editing, reproducible signal experiments, and steganography research.
 
 > **Status: pre-alpha.** The first interface supports local audio loading, playback, and waveform inspection in the browser. The Rust core is not yet connected to the UI. This software is not a validated forensic instrument.
 
