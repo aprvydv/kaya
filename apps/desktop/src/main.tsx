@@ -4,6 +4,7 @@ import './style.css'
 import { inspectWaveFile, type WavMetadata } from './wav'
 import { SignalExplorer } from './SignalExplorer'
 import { SampleInspector } from './SampleInspector'
+import { StegoLab } from './StegoLab'
 
 type Loaded = { name: string; sampleRate: number; channels: number; duration: number; peaks: number[]; url: string; type: string }
 
@@ -81,7 +82,8 @@ function App() {
       {error && <p className="error" role="alert">{error}</p>}
       <audio ref={audio} src={loaded?.url} onTimeUpdate={e=>setPlaybackTime(e.currentTarget.currentTime)} onEnded={()=>setPlaying(false)} onPause={()=>setPlaying(false)}/>
       <SampleInspector source={wavSource} info={wavMeta} playbackTime={playbackTime}/>
-      <div className="tools"><span>◉ &nbsp; WAVEFORM / ACTIVE</span><span>◉ &nbsp; SPECTRUM / ACTIVE</span><span>◉ &nbsp; SAMPLE INSPECTOR / ACTIVE</span></div>
+      <StegoLab source={wavSource} info={wavMeta} filename={loaded?.name??"recording.wav"}/>
+      <div className="tools"><span>◉ &nbsp; WAVEFORM / ACTIVE</span><span>◉ &nbsp; SPECTRUM / ACTIVE</span><span>◉ &nbsp; SAMPLE INSPECTOR / ACTIVE</span><span>◉ &nbsp; LSB LAB / ACTIVE</span></div>
     </section>
     <footer><span>ENGINEERING THE INVISIBLE.</span><span>BUILD 0.1.0 · BROWSER PROTOTYPE</span></footer>
   </main>
