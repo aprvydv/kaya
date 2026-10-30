@@ -59,7 +59,8 @@ export function SignalExplorer({buffer,playbackTime,seek}:Props){
   const [channel,setChannel]=useState<ChannelMode>('left')
   const [fftSize,setFftSize]=useState(1024)
   const [selection,setSelection]=useState<[number,number]|null>(null)
-  const [selectionStart,setSelectionStart]=useState<number|null>(null)
+  const dragStart=useRef<number|null>(null)
+  const [dragPreview,setDragPreview]=useState<[number,number]|null>(null)
   const [width,setWidth]=useState(800)
   const wave=useRef<HTMLCanvasElement>(null),spectrum=useRef<HTMLCanvasElement>(null)
   const holder=useRef<HTMLDivElement>(null)
@@ -70,7 +71,7 @@ export function SignalExplorer({buffer,playbackTime,seek}:Props){
   const rangeStart=buffer?Math.floor(viewStart*buffer.sampleRate):0
   const rangeEnd=buffer?Math.min(buffer.length,Math.ceil(viewEnd*buffer.sampleRate)):0
   const samples=useMemo(()=>buffer?channelSamples(buffer,channel):null,[buffer,channel])
-  useEffect(()=>{setZoom(1);setOffset(0);setChannel('left');setSelection(null);setSelectionStart(null)},[buffer])
+  useEffect(()=>{setZoom(1);setOffset(0);setChannel('left');setSelection(null);setDragPreview(null);dragStart.current=null},[buffer])
   useEffect(()=>{
     const observer=new ResizeObserver(entries=>setWidth(entries[0]?.contentRect.width||800))
     if(holder.current)observer.observe(holder.current)
@@ -87,21 +88,50 @@ export function SignalExplorer({buffer,playbackTime,seek}:Props){
   const selectedRange=selection ? [Math.max(0,Math.floor(selection[0]*(buffer?.sampleRate||1))),Math.min(buffer?.length||0,Math.ceil(selection[1]*(buffer?.sampleRate||1)))] : [rangeStart,rangeEnd]
   const metrics=useMemo(()=>samples&&selectedRange[1]>selectedRange[0]?signalStats(samples,selectedRange[0],selectedRange[1]):null,[samples,selectedRange[0],selectedRange[1]])
   const peaks=useMemo(()=>samples&&selectedRange[1]>selectedRange[0]&&buffer?dominantFrequencies(samples,buffer.sampleRate,selectedRange[0],selectedRange[1]):[],[samples,buffer,selectedRange[0],selectedRange[1]])
-  function pointerTime(event:React.MouseEvent<HTMLCanvasElement>){const r=event.currentTarget.getBoundingClientRect();return Math.max(0,Math.min(duration,viewStart+(event.clientX-r.left)/r.width*(viewEnd-viewStart)))}
-  function seekAt(event:React.MouseEvent<HTMLCanvasElement>){
-    if(!buffer)return
-    if(selectionStart!==null){const end=pointerTime(event);if(Math.abs(end-selectionStart)>0.001)setSelection([Math.min(selectionStart,end),Math.max(selectionStart,end)]);setSelectionStart(null);return}
-    seek(pointerTime(event))
+  function pointerTime(event: React.PointerEvent<HTMLCanvasElement>) {
+    const bounds=event.currentTarget.getBoundingClientRect()
+    const fraction=Math.max(0,Math.min(1,(event.clientX-bounds.left)/bounds.width))
+    return Math.max(0,Math.min(duration,viewStart+fraction*(viewEnd-viewStart)))
+  }
+  function onWaveDown(event: React.PointerEvent<HTMLCanvasElement>) {
+    if(!buffer || event.button!==0)return
+    dragStart.current=pointerTime(event)
+    setDragPreview([dragStart.current,dragStart.current])
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+  function onWaveMove(event: React.PointerEvent<HTMLCanvasElement>) {
+    if(dragStart.current===null)return
+    const t=pointerTime(event)
+    setDragPreview([Math.min(dragStart.current,t),Math.max(dragStart.current,t)])
+  }
+  function onWaveUp(event: React.PointerEvent<HTMLCanvasElement>) {
+    if(dragStart.current===null)return
+    const t=pointerTime(event),start=dragStart.current
+    dragStart.current=null
+    if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId)
+    setDragPreview(null)
+    if(Math.abs(t-start)>=Math.max(.002,1/buffer!.sampleRate))setSelection([Math.min(start,t),Math.max(start,t)])
+    else {setSelection(null);seek(t)}
+  }
+  function onWaveCancel() {dragStart.current=null;setDragPreview(null)}
+  const shownSelection=dragPreview??selection
+  const selectionOverlay=shownSelection ? {
+    left:`${100*(Math.max(viewStart,shownSelection[0])-viewStart)/Math.max(.000001,viewEnd-viewStart)}%`,
+    width:`${100*Math.max(0,Math.min(viewEnd,shownSelection[1])-Math.max(viewStart,shownSelection[0]))/Math.max(.000001,viewEnd-viewStart)}%`
+  } : null
+  function seekSpectrum(event: React.MouseEvent<HTMLCanvasElement>) {
+    const bounds=event.currentTarget.getBoundingClientRect()
+    seek(viewStart+Math.max(0,Math.min(1,(event.clientX-bounds.left)/bounds.width))*(viewEnd-viewStart))
   }
   return <section className="explorer" aria-label="Signal Explorer">
     <div className="explorerbar"><strong>SIGNAL EXPLORER <small>DECODED PCM · NON-DESTRUCTIVE</small></strong>
       <div className="explorercontrols"><label>CHANNEL <select value={channel} onChange={e=>setChannel(e.target.value as ChannelMode)} disabled={!buffer}><option value="left">{buffer?.numberOfChannels===1?'MONO':'LEFT'}</option>{buffer && buffer.numberOfChannels>1 && <><option value="right">RIGHT</option><option value="mix">L+R MIX</option></>}</select></label><label>FFT <select value={fftSize} onChange={e=>setFftSize(Number(e.target.value))}><option value="512">512</option><option value="1024">1024</option><option value="2048">2048</option></select></label></div></div>
     <div className="canvaswrap" ref={holder}>
-      {buffer?<><div className="visualtitle">WAVEFORM <span>min / max envelope · Shift+click twice to select region</span></div><canvas ref={wave} className="wavecanvas" onClick={e=>{if(e.shiftKey){if(selectionStart===null)setSelectionStart(pointerTime(e));else seekAt(e)}else seekAt(e)}} aria-label="Waveform, click to seek"/>
-      <div className="visualtitle">SPECTROGRAM <span>Hann-window FFT · logarithmic display scale · dB</span></div><canvas ref={spectrum} className="spectrocanvas" onClick={seekAt} aria-label="Spectrogram, click to seek"/></>:<div className="explorerempty">Import audio to explore its waveform and frequency spectrum.</div>}
+      {buffer?<><div className="visualtitle">WAVEFORM <span>min / max envelope · drag to select a region</span></div><div className="wave-interaction"><canvas ref={wave} className="wavecanvas" onPointerDown={onWaveDown} onPointerMove={onWaveMove} onPointerUp={onWaveUp} onPointerCancel={onWaveCancel} aria-label="Waveform: click to seek, drag to select a region"/>{selectionOverlay && <div className="selection-overlay" style={selectionOverlay} aria-hidden="true"/>}</div>
+      <div className="visualtitle">SPECTROGRAM <span>Hann-window FFT · logarithmic display scale · dB</span></div><canvas ref={spectrum} className="spectrocanvas" onClick={seekSpectrum} aria-label="Spectrogram, click to seek"/></>:<div className="explorerempty">Import audio to explore its waveform and frequency spectrum.</div>}
     </div>
     <div className="ruler"><span>{viewStart.toFixed(2)}s</span><span>{((viewStart+viewEnd)/2).toFixed(2)}s</span><span>{viewEnd.toFixed(2)}s</span></div>
-    {buffer && metrics && <section className="intelligence" aria-label="Signal statistics"><div className="analysis-head"><strong>SIGNAL INTELLIGENCE</strong><span>{selection ? `SELECTED ${selection[0].toFixed(2)}–${selection[1].toFixed(2)}s` : `VISIBLE REGION ${viewStart.toFixed(2)}–${viewEnd.toFixed(2)}s`}</span><button onClick={()=>{setSelection(null);setSelectionStart(null)}} disabled={!selection && selectionStart===null}>CLEAR SELECTION</button></div><div className="metricgrid">{[{key:'PEAK',value:metrics.peakDbfs===null?'−∞':metrics.peakDbfs.toFixed(2)+' dBFS'},{key:'RMS',value:metrics.rmsDbfs===null?'−∞':metrics.rmsDbfs.toFixed(2)+' dBFS'},{key:'CREST FACTOR',value:metrics.crestDb===null?'—':metrics.crestDb.toFixed(2)+' dB'},{key:'CLIP SAMPLES ≥ 1.0',value:metrics.clippedSamples.toLocaleString()},{key:'DC OFFSET',value:metrics.dcOffset.toFixed(5)},{key:'SAMPLES',value:metrics.samples.toLocaleString()}].map(x=><div className="metric" key={x.key}><small>{x.key}</small><strong>{x.value}</strong></div>)}</div><div className="freqresults"><strong>DOMINANT FREQUENCIES <small>single FFT at region midpoint · approximate peaks</small></strong>{peaks.length?<div className="frequencylist">{peaks.map((p,i)=><span key={i}>{p.frequencyHz.toFixed(1)} Hz</span>)}</div>:<p>No frequency peak detected.</p>}</div><p className="analysisnote">Analysis uses browser-decoded PCM. Clipping threshold is |sample| ≥ 1; this is not proof of clipping in the source recording. Frequency peaks are from one FFT window, not a full-region average.</p></section>}
+    {buffer && metrics && <section className="intelligence" aria-label="Signal statistics"><div className="analysis-head"><strong>SIGNAL INTELLIGENCE</strong><span>{selection ? `SELECTED ${selection[0].toFixed(2)}–${selection[1].toFixed(2)}s` : `VISIBLE REGION ${viewStart.toFixed(2)}–${viewEnd.toFixed(2)}s`}</span><button onClick={()=>{setSelection(null);setDragPreview(null);dragStart.current=null}} disabled={!selection && !dragPreview}>CLEAR SELECTION</button></div><div className="metricgrid">{[{key:'PEAK',value:metrics.peakDbfs===null?'−∞':metrics.peakDbfs.toFixed(2)+' dBFS'},{key:'RMS',value:metrics.rmsDbfs===null?'−∞':metrics.rmsDbfs.toFixed(2)+' dBFS'},{key:'CREST FACTOR',value:metrics.crestDb===null?'—':metrics.crestDb.toFixed(2)+' dB'},{key:'CLIP SAMPLES ≥ 1.0',value:metrics.clippedSamples.toLocaleString()},{key:'DC OFFSET',value:metrics.dcOffset.toFixed(5)},{key:'SAMPLES',value:metrics.samples.toLocaleString()}].map(x=><div className="metric" key={x.key}><small>{x.key}</small><strong>{x.value}</strong></div>)}</div><div className="freqresults"><strong>DOMINANT FREQUENCIES <small>single FFT at region midpoint · approximate peaks</small></strong>{peaks.length?<div className="frequencylist">{peaks.map((p,i)=><span key={i}>{p.frequencyHz.toFixed(1)} Hz</span>)}</div>:<p>No frequency peak detected.</p>}</div><p className="analysisnote">Analysis uses browser-decoded PCM. Clipping threshold is |sample| ≥ 1; this is not proof of clipping in the source recording. Frequency peaks are from one FFT window, not a full-region average.</p></section>}
     <div className="zoomrow"><label>ZOOM <input type="range" min="1" max="16" step="1" value={zoom} disabled={!buffer} onChange={e=>{setZoom(Number(e.target.value));setOffset(0)}}/></label><span>{zoom}×</span><label className="panlabel">PAN <input type="range" min="0" max={maxStart||1} step={Math.max(.001,maxStart/300)} value={viewStart} disabled={!buffer||zoom===1} onChange={e=>setOffset(Number(e.target.value))}/></label><button disabled={!buffer} onClick={()=>{setZoom(1);setOffset(0)}}>RESET</button></div>
   </section>
 }
