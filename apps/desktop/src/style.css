@@ -46,3 +46,8 @@
 .frequencylist span{padding:7px 10px;background:#283039;border-radius:4px;font-size:11px;color:#d8b49b}
 .analysisnote{font-size:10px;line-height:1.7;color:#87939c;margin:16px 0 0}
 @media(max-width:600px){.intelligence{padding:15px 12px}.metricgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.metric strong{font-size:15px}}
+
+/* Visible non-destructive region selection in the waveform viewport. */
+.wave-interaction{position:relative;width:100%;touch-action:none}
+.wave-interaction .wavecanvas{touch-action:none;user-select:none}
+.selection-overlay{position:absolute;top:0;bottom:0;background:rgba(203,163,139,.22);border-left:2px solid #efd5ba;border-right:2px solid #efd5ba;pointer-events:none;z-index:2;box-sizing:border-box}
