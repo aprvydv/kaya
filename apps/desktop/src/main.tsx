@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './style.css'
+import { inspectWaveFile, type WavMetadata } from './wav'
 
 type Loaded = { name: string; sampleRate: number; channels: number; duration: number; peaks: number[]; url: string; type: string }
 
@@ -20,6 +21,8 @@ function buildPeaks(buffer: AudioBuffer, width = 320): number[] {
 function App() {
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [error, setError] = useState('')
+  const [wavMeta,setWavMeta] = useState<WavMetadata | null>(null)
+  const [wavNotice,setWavNotice] = useState('')
   const [playing, setPlaying] = useState(false)
   const audio = useRef<HTMLAudioElement>(null)
   const objectUrl = useRef<string | null>(null)
@@ -28,8 +31,14 @@ function App() {
   async function importFile(file?: File) {
     if (!file) return
     setError('')
+    setWavMeta(null)
+    setWavNotice('')
     try {
       const bytes = await file.arrayBuffer()
+      if (new Uint8Array(bytes,0,Math.min(4,bytes.byteLength)).every((v,i)=>v===[82,73,70,70][i]) && bytes.byteLength>=4) {
+        try { setWavMeta(await inspectWaveFile(bytes)) }
+        catch (e) { setWavNotice(e instanceof Error ? e.message : 'Could not inspect WAV metadata') }
+      } else { setWavNotice('This is not a classic RIFF/WAVE file. Binary inspection currently supports WAV only.') }
       const context = new AudioContext()
       let decoded: AudioBuffer
       try { decoded = await context.decodeAudioData(bytes.slice(0)) }
@@ -59,6 +68,8 @@ function App() {
       <div className="ruler"><span>00:00</span><span>{loaded ? (loaded.duration/2).toFixed(1)+'s' : '—'}</span><span>{loaded ? duration+'s' : '—'}</span></div>
       {loaded && <div className="metadata"><span>{loaded.sampleRate.toLocaleString()} Hz</span><span>{loaded.channels} channel{loaded.channels!==1?'s':''}</span><span>{loaded.type}</span></div>}
       <div className="actions"><label className="import">IMPORT AUDIO<input type="file" accept="audio/*,.wav,.mp3,.ogg,.flac" onChange={e=>void importFile(e.target.files?.[0])}/></label><button onClick={togglePlayback} disabled={!loaded}>{playing ? 'PAUSE' : 'PLAY'}</button><span className="hint">Files remain on your device. No upload.</span></div>
+      {wavMeta && <section className="inspector" aria-label="WAV file inspection"><h2>FILE INSPECTOR <small>EXACT SOURCE BYTES</small></h2><div className="inspectorgrid"><span>Container</span><strong>{wavMeta.container}</strong><span>Encoding</span><strong>{wavMeta.codec} · {wavMeta.bitDepth}-bit</strong><span>Sample rate</span><strong>{wavMeta.sampleRate.toLocaleString()} Hz</strong><span>Channels</span><strong>{wavMeta.channels}</strong><span>Frames</span><strong>{wavMeta.frames.toLocaleString()}</strong><span>Audio data</span><strong>{wavMeta.dataBytes.toLocaleString()} bytes · offset {wavMeta.dataOffset}</strong><span>Source SHA-256</span><code className="hash">{wavMeta.sha256}</code></div><p className="inspectorfoot">Metadata and SHA-256 are computed from the original file bytes. Waveform playback is browser-decoded and may be resampled.</p></section>}
+      {wavNotice && <p className="notice" role="status">{wavNotice}</p>}
       {error && <p className="error" role="alert">{error}</p>}
       <audio ref={audio} src={loaded?.url} onEnded={()=>setPlaying(false)} onPause={()=>setPlaying(false)}/>
       <div className="tools"><span>◉ &nbsp; WAVEFORM / ACTIVE</span><span>◇ &nbsp; SPECTRUM / PLANNED</span><span>◇ &nbsp; FORENSICS / PLANNED</span></div>

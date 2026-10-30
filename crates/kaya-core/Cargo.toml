@@ -3,4 +3,7 @@ name = "kaya-core"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-description = "Core sample-buffer primitives for KAYA"
+description = "Core audio primitives and strict WAV inspection for KAYA"
+
+[dependencies]
+sha2 = "0.10"
