@@ -10,8 +10,8 @@
 ## Milestone 1 — Signal inspection
 
 - [x] Classic RIFF/WAVE metadata and original-file SHA-256 in separate Rust and browser inspectors (Rust/UI bridge pending)
-- [ ] Accurate channel-specific waveform and zoom
-- [ ] FFT spectrogram and synchronized time cursor
+- [x] Browser-decoded channel-specific min/max waveform with zoom/pan and playback-linked seeking
+- [x] Browser-decoded Hann-windowed FFT spectrogram, shared time view and waveform playback cursor (spectrogram cursor and native Rust integration pending)
 - [ ] Sample value inspector
 
 ## Milestone 2 — Reproducible audio operations
