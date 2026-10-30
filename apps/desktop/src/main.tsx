@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './style.css'
 import { inspectWaveFile, type WavMetadata } from './wav'
 import { SignalExplorer } from './SignalExplorer'
+import { SampleInspector } from './SampleInspector'
 
 type Loaded = { name: string; sampleRate: number; channels: number; duration: number; peaks: number[]; url: string; type: string }
 
@@ -23,6 +24,7 @@ function App() {
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [error, setError] = useState('')
   const [wavMeta,setWavMeta] = useState<WavMetadata | null>(null)
+  const [wavSource,setWavSource] = useState<ArrayBuffer | null>(null)
   const [wavNotice,setWavNotice] = useState('')
   const [playing, setPlaying] = useState(false)
   const [playbackTime, setPlaybackTime] = useState(0)
@@ -35,11 +37,12 @@ function App() {
     if (!file) return
     setError('')
     setWavMeta(null)
+    setWavSource(null)
     setWavNotice('')
     try {
       const bytes = await file.arrayBuffer()
       if (new Uint8Array(bytes,0,Math.min(4,bytes.byteLength)).every((v,i)=>v===[82,73,70,70][i]) && bytes.byteLength>=4) {
-        try { setWavMeta(await inspectWaveFile(bytes)) }
+        try { const metadata = await inspectWaveFile(bytes);setWavMeta(metadata);setWavSource(bytes) }
         catch (e) { setWavNotice(e instanceof Error ? e.message : 'Could not inspect WAV metadata') }
       } else { setWavNotice('This is not a classic RIFF/WAVE file. Binary inspection currently supports WAV only.') }
       const context = new AudioContext()
@@ -77,7 +80,8 @@ function App() {
       {wavNotice && <p className="notice" role="status">{wavNotice}</p>}
       {error && <p className="error" role="alert">{error}</p>}
       <audio ref={audio} src={loaded?.url} onTimeUpdate={e=>setPlaybackTime(e.currentTarget.currentTime)} onEnded={()=>setPlaying(false)} onPause={()=>setPlaying(false)}/>
-      <div className="tools"><span>◉ &nbsp; WAVEFORM / ACTIVE</span><span>◉ &nbsp; SPECTRUM / ACTIVE</span><span>◇ &nbsp; FORENSICS / PLANNED</span></div>
+      <SampleInspector source={wavSource} info={wavMeta} playbackTime={playbackTime}/>
+      <div className="tools"><span>◉ &nbsp; WAVEFORM / ACTIVE</span><span>◉ &nbsp; SPECTRUM / ACTIVE</span><span>◉ &nbsp; SAMPLE INSPECTOR / ACTIVE</span></div>
     </section>
     <footer><span>ENGINEERING THE INVISIBLE.</span><span>BUILD 0.1.0 · BROWSER PROTOTYPE</span></footer>
   </main>
