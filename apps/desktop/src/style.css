@@ -89,3 +89,20 @@
 .stegostatus,.stegonotice,.stegowarning,.stegoerror{font-size:11px;line-height:1.6;margin:14px 0 0}
 .stegostatus{color:#b2c9b6}.stegowarning,.stegonotice{color:#98a3a9}.stegoerror{color:#eda7a7}
 @media(max-width:600px){.stegolab{padding:16px 12px}}
+
+/* Day 06 — before/after forensic signal measurements */
+.comparepanel{margin-top:18px;padding:18px;background:#111820;border:1px solid #3a4650;border-radius:6px}
+.comparetitle,.comparesub{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.comparetitle strong,.comparesub strong{font-size:11px;letter-spacing:.09em;color:#e8d9cb}
+.comparetitle small,.comparesub span{color:#97a6ad;font-size:10px}
+.comparegrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:16px 0}
+.comparemetric{padding:12px 10px;background:#222b32;border:1px solid #35424a;border-radius:5px;display:flex;flex-direction:column;gap:8px}
+.comparemetric small{font-size:9px;color:#a0abb0;letter-spacing:.06em}
+.comparemetric strong{font-size:15px;color:#e1c3ae;overflow-wrap:anywhere}
+.comparesub{margin:18px 0 9px}
+.comparetable{overflow-x:auto;border:1px solid #394750;border-radius:4px}
+.comparetable table{width:100%;border-collapse:collapse;text-align:left;font-size:11px;font-variant-numeric:tabular-nums}
+.comparetable th{font-size:9px;font-weight:500;color:#aab3b8;background:#263039;padding:10px}
+.comparetable td{padding:9px 10px;border-top:1px solid #36414a}
+.comparecaveat{color:#95a0a7;font-size:10px;line-height:1.65;margin-bottom:0}
+@media(max-width:700px){.comparegrid{grid-template-columns:repeat(2,minmax(0,1fr))}.comparepanel{padding:12px}}
