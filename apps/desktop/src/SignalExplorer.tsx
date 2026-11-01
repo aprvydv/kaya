@@ -3,7 +3,7 @@ import { channelSamples, spectrogram, waveformEnvelope, type ChannelMode } from 
 import { dominantFrequencies, signalStats } from './analysis'
 
 type Props = { buffer: AudioBuffer | null; playbackTime: number; seek: (seconds: number) => void }
-function drawWave(canvas: HTMLCanvasElement, data: Float32Array, start: number, end: number, cursor: number, duration: number, sampleRate: number) {
+function drawWave(canvas: HTMLCanvasElement, data: Float32Array, start: number, end: number) {
   const rect=canvas.getBoundingClientRect()
   if(!rect.width || !rect.height)return
   const ratio=Math.min(window.devicePixelRatio||1,2),w=Math.round(rect.width*ratio),h=Math.round(rect.height*ratio)
@@ -22,11 +22,7 @@ function drawWave(canvas: HTMLCanvasElement, data: Float32Array, start: number, 
     ctx.moveTo(x,lo);ctx.lineTo(x,Math.max(lo+.8,hi))
   }
   ctx.stroke()
-  const left=start/sampleRate,right=end/sampleRate
-  if(cursor>=left&&cursor<=right){
-    const x=(cursor-left)/(right-left)*w
-    ctx.strokeStyle='#f1ede5';ctx.lineWidth=1*ratio;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()
-  }
+
 }
 function drawSpectrum(canvas: HTMLCanvasElement, data: Float32Array, rate: number, start: number, end: number, fftSize: number) {
   const rect=canvas.getBoundingClientRect()
@@ -79,8 +75,8 @@ export function SignalExplorer({buffer,playbackTime,seek}:Props){
   },[])
   useEffect(()=>{
     if(!samples||!buffer)return
-    if(wave.current)drawWave(wave.current,samples,rangeStart,rangeEnd,playbackTime,duration,buffer.sampleRate)
-  },[samples,buffer,rangeStart,rangeEnd,playbackTime,width,duration])
+    if(wave.current)drawWave(wave.current,samples,rangeStart,rangeEnd)
+  },[samples,buffer,rangeStart,rangeEnd,width])
   useEffect(()=>{
     if(!samples||!buffer)return
     if(spectrum.current)drawSpectrum(spectrum.current,samples,buffer.sampleRate,rangeStart,rangeEnd,fftSize)
@@ -114,6 +110,9 @@ export function SignalExplorer({buffer,playbackTime,seek}:Props){
     else {setSelection(null);seek(t)}
   }
   function onWaveCancel() {dragStart.current=null;setDragPreview(null)}
+  // Playhead is a cheap positioned overlay: playback ticks must not rescan/redraw the entire waveform.
+  const playheadLeft = viewEnd > viewStart && playbackTime >= viewStart && playbackTime <= viewEnd
+    ? `${100 * (playbackTime - viewStart) / (viewEnd - viewStart)}%` : null
   const shownSelection=dragPreview??selection
   const selectionOverlay=shownSelection ? {
     left:`${100*(Math.max(viewStart,shownSelection[0])-viewStart)/Math.max(.000001,viewEnd-viewStart)}%`,
@@ -127,7 +126,7 @@ export function SignalExplorer({buffer,playbackTime,seek}:Props){
     <div className="explorerbar"><strong>SIGNAL EXPLORER <small>DECODED PCM · NON-DESTRUCTIVE</small></strong>
       <div className="explorercontrols"><label>CHANNEL <select value={channel} onChange={e=>setChannel(e.target.value as ChannelMode)} disabled={!buffer}><option value="left">{buffer?.numberOfChannels===1?'MONO':'LEFT'}</option>{buffer && buffer.numberOfChannels>1 && <><option value="right">RIGHT</option><option value="mix">L+R MIX</option></>}</select></label><label>FFT <select value={fftSize} onChange={e=>setFftSize(Number(e.target.value))}><option value="512">512</option><option value="1024">1024</option><option value="2048">2048</option></select></label></div></div>
     <div className="canvaswrap" ref={holder}>
-      {buffer?<><div className="visualtitle">WAVEFORM <span>min / max envelope · drag to select a region</span></div><div className="wave-interaction"><canvas ref={wave} className="wavecanvas" onPointerDown={onWaveDown} onPointerMove={onWaveMove} onPointerUp={onWaveUp} onPointerCancel={onWaveCancel} aria-label="Waveform: click to seek, drag to select a region"/>{selectionOverlay && <div className="selection-overlay" style={selectionOverlay} aria-hidden="true"/>}</div>
+      {buffer?<><div className="visualtitle">WAVEFORM <span>min / max envelope · drag to select a region</span></div><div className="wave-interaction"><canvas ref={wave} className="wavecanvas" onPointerDown={onWaveDown} onPointerMove={onWaveMove} onPointerUp={onWaveUp} onPointerCancel={onWaveCancel} aria-label="Waveform: click to seek, drag to select a region"/>{selectionOverlay && <div className="selection-overlay" style={selectionOverlay} aria-hidden="true"/>}{playheadLeft !== null && <div className="playhead-overlay" style={{left:playheadLeft}} aria-hidden="true"/>}</div>
       <div className="visualtitle">SPECTROGRAM <span>Hann-window FFT · logarithmic display scale · dB</span></div><canvas ref={spectrum} className="spectrocanvas" onClick={seekSpectrum} aria-label="Spectrogram, click to seek"/></>:<div className="explorerempty">Import audio to explore its waveform and frequency spectrum.</div>}
     </div>
     <div className="ruler"><span>{viewStart.toFixed(2)}s</span><span>{((viewStart+viewEnd)/2).toFixed(2)}s</span><span>{viewEnd.toFixed(2)}s</span></div>
