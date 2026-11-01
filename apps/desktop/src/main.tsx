@@ -6,6 +6,7 @@ import { SignalExplorer } from './SignalExplorer'
 import { SampleInspector } from './SampleInspector'
 import { StegoLab } from './StegoLab'
 import { createImportGeneration } from './importGeneration'
+import { validateSourceSize, validateDecodedSize } from './memoryLimits'
 
 type Loaded = { name: string; sampleRate: number; channels: number; duration: number; peaks: number[]; url: string; type: string }
 
@@ -60,6 +61,7 @@ function App() {
     setImporting(true)
 
     try {
+      validateSourceSize(file.size)
       const bytes = await file.arrayBuffer()
       if (!generation.current.isCurrent(token)) return
       let metadata: WavMetadata | null = null
@@ -80,6 +82,7 @@ function App() {
       try { decoded = await context.decodeAudioData(bytes.slice(0)) }
       finally { await context.close() }
       if (!generation.current.isCurrent(token)) return
+      validateDecodedSize(decoded.length,decoded.numberOfChannels)
       const url = URL.createObjectURL(file)
       // No asynchronous steps after creation; this import owns the new URL.
       objectUrl.current = url
