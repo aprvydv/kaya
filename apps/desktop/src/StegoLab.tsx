@@ -9,6 +9,8 @@ export function StegoLab({source,info,filename}:Props){
   const [recovered,setRecovered]=useState('')
   const [error,setError]=useState('')
   const [status,setStatus]=useState('')
+  const [comparison,setComparison]=useState<Comparison|null>(null)
+  const [comparisonStatus,setComparisonStatus]=useState('')
   useEffect(()=>{setResult(null);setRecovered('');setError('');setStatus('');setMessage('')},[source])
   useEffect(()=>{
     setComparison(null)
