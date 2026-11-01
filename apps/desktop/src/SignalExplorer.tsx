@@ -35,7 +35,7 @@ function drawSpectrum(canvas: HTMLCanvasElement, binsByColumn: Float32Array[], f
   const columns=binsByColumn.length
   if(columns===0)return
   const binCount=fftSize/2
-  for(let x=0;x<slices.length;x++){
+  for(let x=0;x<binsByColumn.length;x++){
     const bins=binsByColumn[x]
     const x1=Math.floor(x*w/columns),x2=Math.ceil((x+1)*w/columns)
     for(let y=0;y<h;y+=2){
