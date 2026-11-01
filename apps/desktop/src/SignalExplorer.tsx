@@ -86,7 +86,7 @@ export function SignalExplorer({buffer,playbackTime,seek}:Props){
     const columns=Math.min(320,Math.max(1,Math.round(rect.width*ratio/3)))
     // Copy just the visible window with sufficient edge context, then transfer
     // ownership of the copy to the worker (the original decoded PCM is untouched).
-    const window=spectrumWindow(samples,rangeStart,rangeEnd,fftSize)
+    const viewWindow=spectrumWindow(samples,rangeStart,rangeEnd,fftSize)
     const worker=new Worker(new URL('./spectrogram.worker.ts',import.meta.url),{type:'module'})
     let active=true
     const ctx=canvas.getContext('2d')
@@ -97,7 +97,7 @@ export function SignalExplorer({buffer,playbackTime,seek}:Props){
       else if(event.data.error)console.warn('Spectrogram:',event.data.error)
     }
     worker.onerror=()=>{if(active)console.warn('Spectrogram computation failed')}
-    worker.postMessage({data:window.data,rate:buffer.sampleRate,start:window.start,end:window.end,columns,fftSize},[window.data.buffer])
+    worker.postMessage({data:viewWindow.data,rate:buffer.sampleRate,start:viewWindow.start,end:viewWindow.end,columns,fftSize},[viewWindow.data.buffer])
     return()=>{active=false;worker.terminate()}
   },[samples,buffer,rangeStart,rangeEnd,fftSize,width])
   const selectedRange=selection ? [Math.max(0,Math.floor(selection[0]*(buffer?.sampleRate||1))),Math.min(buffer?.length||0,Math.ceil(selection[1]*(buffer?.sampleRate||1)))] : [rangeStart,rangeEnd]
