@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Comparison } from './comparison'
+import { canEmbedInMemory } from './memoryLimits'
 import type { WavMetadata } from './wav'
 import {capacityBytes,embedMessage,extractMessage,type EmbedResult} from './lsb'
 type Props={source:ArrayBuffer|null;info:WavMetadata|null;filename:string}
@@ -37,8 +38,10 @@ export function StegoLab({source,info,filename}:Props){
   },[source,info,result])
   const supported=!!source&&!!info&&info.codec==='PCM integer'&&info.bitDepth===16
   const capacity=supported?capacityBytes(info!):0
+  const memorySafe=!!source && canEmbedInMemory(source.byteLength)
   function embed(){
     if(!source||!info)return
+    if(!memorySafe){setError('Embedding disabled above 48 MiB to protect browser memory.');return}
     try{
       const next=embedMessage(source,info,message)
       setResult(next);setRecovered('');setError('')
@@ -61,9 +64,10 @@ export function StegoLab({source,info,filename}:Props){
   return <section className="stegolab" aria-label="LSB steganography laboratory">
     <div className="stegohead"><strong>STEGANOGRAPHY LAB <small>EXPERIMENT 001 / 1-BIT LSB</small></strong><span>16-BIT PCM WAV ONLY</span></div>
     {supported?<><div className="stegocap"><span>MAXIMUM UTF-8 PAYLOAD</span><strong>{capacity.toLocaleString()} bytes</strong><span>1 bit per sample · 12-byte framing overhead</span></div>
+      {!memorySafe&&<p className="stegonotice" role="status">LSB embedding disabled for files above 48 MiB to prevent excessive memory copying. Source inspection remains available.</p>}
       <label className="stegolabel" htmlFor="stego-msg">SECRET MESSAGE (NOT ENCRYPTED)</label>
       <textarea id="stego-msg" value={message} onChange={e=>setMessage(e.target.value)} placeholder="Type a small message to embed into a copy of the WAV file" rows={3}/>
-      <div className="stegoactions"><button onClick={embed}>EMBED IN COPY</button><button onClick={()=>result&&extract(result.output)} disabled={!result}>VERIFY EXTRACTION</button><button onClick={download} disabled={!result}>DOWNLOAD WAV</button><button onClick={()=>source&&extract(source)}>SCAN ORIGINAL FOR KAYA PAYLOAD</button></div>
+      <div className="stegoactions"><button onClick={embed} disabled={!memorySafe}>EMBED IN COPY</button><button onClick={()=>result&&extract(result.output)} disabled={!result}>VERIFY EXTRACTION</button><button onClick={download} disabled={!result}>DOWNLOAD WAV</button><button onClick={()=>source&&extract(source)}>SCAN ORIGINAL FOR KAYA PAYLOAD</button></div>
       {result&&<div className="stegoresults"><span>Payload: <strong>{result.payloadBytes.toLocaleString()} bytes</strong></span><span>Samples used: <strong>{result.usedSamples.toLocaleString()}</strong></span><span>LSBs actually changed: <strong>{result.changedSamples.toLocaleString()}</strong></span><span>Changes in all other bits: <strong>0 (by construction)</strong></span></div>}
       {comparisonStatus&&<p className="stegostatus" role="status">{comparisonStatus}</p>}
       {comparison&&<section className="comparepanel" aria-label="Before and after PCM comparison"><div className="comparetitle"><strong>SIGNAL DIFFERENCE LAB</strong><small>ORIGINAL VS EMBEDDED COPY · FULL PCM DATA</small></div><div className="comparegrid">{[
