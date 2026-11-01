@@ -5,7 +5,7 @@ self.onmessage=(event:MessageEvent<Job>)=>{
     const {data,rate,start,end,columns,fftSize}=event.data
     const slices=calculateWindow(data,rate,start,end,columns,fftSize)
     const bins=slices.map(slice=>slice.bins)
-    self.postMessage({bins},bins.map(x=>x.buffer))
+    self.postMessage({bins},{transfer:bins.map(x=>x.buffer as ArrayBuffer)})
   }catch(e){
     self.postMessage({error:e instanceof Error?e.message:'Spectrogram analysis failed'})
   }
