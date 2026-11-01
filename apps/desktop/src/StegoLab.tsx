@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
+import type { Comparison } from './comparison'
 import type { WavMetadata } from './wav'
 import {capacityBytes,embedMessage,extractMessage,type EmbedResult} from './lsb'
-import {comparePcm} from './comparison'
 type Props={source:ArrayBuffer|null;info:WavMetadata|null;filename:string}
 export function StegoLab({source,info,filename}:Props){
   const [message,setMessage]=useState('')
@@ -9,10 +9,34 @@ export function StegoLab({source,info,filename}:Props){
   const [recovered,setRecovered]=useState('')
   const [error,setError]=useState('')
   const [status,setStatus]=useState('')
+  const [comparison,setComparison]=useState<Comparison|null>(null)
+  const [comparisonStatus,setComparisonStatus]=useState('')
   useEffect(()=>{setResult(null);setRecovered('');setError('');setStatus('');setMessage('')},[source])
+  useEffect(()=>{
+    setComparison(null)
+    setComparisonStatus('')
+    if(!result || !source || !info)return
+    // Structured cloning to a worker duplicates buffers; cap comparison until streaming is available.
+    const MAX_COMPARISON_BYTES=100*1024*1024
+    if(source.byteLength>MAX_COMPARISON_BYTES){
+      setComparisonStatus('Comparison unavailable above 100 MiB (memory safety limit).')
+      return
+    }
+    let active=true
+    const worker=new Worker(new URL('./comparison.worker.ts',import.meta.url),{type:'module'})
+    setComparisonStatus('Analyzing PCM samples in background…')
+    worker.onmessage=(event:MessageEvent<{id:number;comparison?:Comparison;error?:string}>)=>{
+      if(!active)return
+      if(event.data.error){setComparisonStatus(event.data.error);return}
+      setComparison(event.data.comparison??null)
+      setComparisonStatus('')
+    }
+    worker.onerror=()=>{if(active)setComparisonStatus('Unable to analyze this file.')}
+    worker.postMessage({id:1,original:source,modified:result.output,info})
+    return ()=>{active=false;worker.terminate()}
+  },[source,info,result])
   const supported=!!source&&!!info&&info.codec==='PCM integer'&&info.bitDepth===16
   const capacity=supported?capacityBytes(info!):0
-  const comparison = result && source && info ? comparePcm(source,result.output,info) : null
   function embed(){
     if(!source||!info)return
     try{
@@ -41,6 +65,7 @@ export function StegoLab({source,info,filename}:Props){
       <textarea id="stego-msg" value={message} onChange={e=>setMessage(e.target.value)} placeholder="Type a small message to embed into a copy of the WAV file" rows={3}/>
       <div className="stegoactions"><button onClick={embed}>EMBED IN COPY</button><button onClick={()=>result&&extract(result.output)} disabled={!result}>VERIFY EXTRACTION</button><button onClick={download} disabled={!result}>DOWNLOAD WAV</button><button onClick={()=>source&&extract(source)}>SCAN ORIGINAL FOR KAYA PAYLOAD</button></div>
       {result&&<div className="stegoresults"><span>Payload: <strong>{result.payloadBytes.toLocaleString()} bytes</strong></span><span>Samples used: <strong>{result.usedSamples.toLocaleString()}</strong></span><span>LSBs actually changed: <strong>{result.changedSamples.toLocaleString()}</strong></span><span>Changes in all other bits: <strong>0 (by construction)</strong></span></div>}
+      {comparisonStatus&&<p className="stegostatus" role="status">{comparisonStatus}</p>}
       {comparison&&<section className="comparepanel" aria-label="Before and after PCM comparison"><div className="comparetitle"><strong>SIGNAL DIFFERENCE LAB</strong><small>ORIGINAL VS EMBEDDED COPY · FULL PCM DATA</small></div><div className="comparegrid">{[
         ['CHANGED SAMPLES',comparison.changedSamples.toLocaleString()],
         ['CHANGED %',comparison.changedPercent.toFixed(5)+'%'],
