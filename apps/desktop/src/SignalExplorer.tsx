@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { channelSamples, spectrogram, waveformEnvelope, type ChannelMode } from './signal'
+import { channelSamples, waveformEnvelope, type ChannelMode } from './signal'
 import { dominantFrequencies, signalStats } from './analysis'
+import { spectrumWindow } from './spectrumWindow'
 
 type Props = { buffer: AudioBuffer | null; playbackTime: number; seek: (seconds: number) => void }
 function drawWave(canvas: HTMLCanvasElement, data: Float32Array, start: number, end: number) {
@@ -24,18 +25,18 @@ function drawWave(canvas: HTMLCanvasElement, data: Float32Array, start: number, 
   ctx.stroke()
 
 }
-function drawSpectrum(canvas: HTMLCanvasElement, data: Float32Array, rate: number, start: number, end: number, fftSize: number) {
+function drawSpectrum(canvas: HTMLCanvasElement, binsByColumn: Float32Array[], fftSize: number) {
   const rect=canvas.getBoundingClientRect()
   if(!rect.width||!rect.height)return
   const ratio=Math.min(window.devicePixelRatio||1,2),w=Math.max(1,Math.round(rect.width*ratio)),h=Math.max(1,Math.round(rect.height*ratio))
   canvas.width=w;canvas.height=h
   const ctx=canvas.getContext('2d');if(!ctx)return
   ctx.fillStyle='#131820';ctx.fillRect(0,0,w,h)
-  const columns=Math.min(320,Math.max(1,Math.round(w/3)))
-  const slices=spectrogram(data,rate,start,end,columns,fftSize)
+  const columns=binsByColumn.length
+  if(columns===0)return
   const binCount=fftSize/2
-  for(let x=0;x<slices.length;x++){
-    const bins=slices[x].bins
+  for(let x=0;x<binsByColumn.length;x++){
+    const bins=binsByColumn[x]
     const x1=Math.floor(x*w/columns),x2=Math.ceil((x+1)*w/columns)
     for(let y=0;y<h;y+=2){
       const norm=1-y/h
@@ -78,8 +79,26 @@ export function SignalExplorer({buffer,playbackTime,seek}:Props){
     if(wave.current)drawWave(wave.current,samples,rangeStart,rangeEnd)
   },[samples,buffer,rangeStart,rangeEnd,width])
   useEffect(()=>{
-    if(!samples||!buffer)return
-    if(spectrum.current)drawSpectrum(spectrum.current,samples,buffer.sampleRate,rangeStart,rangeEnd,fftSize)
+    const canvas=spectrum.current
+    if(!samples||!buffer||!canvas||rangeEnd<=rangeStart)return
+    const rect=canvas.getBoundingClientRect()
+    const ratio=Math.min(window.devicePixelRatio||1,2)
+    const columns=Math.min(320,Math.max(1,Math.round(rect.width*ratio/3)))
+    // Copy just the visible window with sufficient edge context, then transfer
+    // ownership of the copy to the worker (the original decoded PCM is untouched).
+    const viewWindow=spectrumWindow(samples,rangeStart,rangeEnd,fftSize)
+    const worker=new Worker(new URL('./spectrogram.worker.ts',import.meta.url),{type:'module'})
+    let active=true
+    const ctx=canvas.getContext('2d')
+    if(ctx){canvas.width=Math.max(1,Math.round(rect.width*ratio));canvas.height=Math.max(1,Math.round(rect.height*ratio));ctx.fillStyle='#131820';ctx.fillRect(0,0,canvas.width,canvas.height)}
+    worker.onmessage=(event:MessageEvent<{bins?:Float32Array[];error?:string}>)=>{
+      if(!active||!spectrum.current)return
+      if(event.data.bins)drawSpectrum(spectrum.current,event.data.bins,fftSize)
+      else if(event.data.error)console.warn('Spectrogram:',event.data.error)
+    }
+    worker.onerror=()=>{if(active)console.warn('Spectrogram computation failed')}
+    worker.postMessage({data:viewWindow.data,rate:buffer.sampleRate,start:viewWindow.start,end:viewWindow.end,columns,fftSize},[viewWindow.data.buffer])
+    return()=>{active=false;worker.terminate()}
   },[samples,buffer,rangeStart,rangeEnd,fftSize,width])
   const selectedRange=selection ? [Math.max(0,Math.floor(selection[0]*(buffer?.sampleRate||1))),Math.min(buffer?.length||0,Math.ceil(selection[1]*(buffer?.sampleRate||1)))] : [rangeStart,rangeEnd]
   const metrics=useMemo(()=>samples&&selectedRange[1]>selectedRange[0]?signalStats(samples,selectedRange[0],selectedRange[1]):null,[samples,selectedRange[0],selectedRange[1]])
